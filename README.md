@@ -1,7 +1,7 @@
 # currency-converter
--HTML
--CSS
--JavaScript
+- HTML
+- CSS
+- JavaScript
   - Fetch
   - Async/await
   - API
