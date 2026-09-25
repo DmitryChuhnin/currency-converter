@@ -20,3 +20,8 @@ CLAUDE.local.md
 .vscode/*
 !.vscode/extensions.json
 *.log
+
+# Test output
+test-results/
+playwright-report/
+coverage/

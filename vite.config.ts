@@ -3,66 +3,58 @@ import vue from '@vitejs/plugin-vue'
 import {VitePWA} from 'vite-plugin-pwa'
 import path from 'path'
 
+// The app is served from /converter/. Manifest paths below repeat this prefix by hand.
+const BASE = '/converter/'
+
 export default defineConfig({
-    base: '/converter/', // ВАЖНО: базовый путь
+    base: BASE,
     plugins: [
         vue(),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.ico'],
+            injectRegister: 'script',
+            includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
             manifest: {
                 name: 'Currency Converter',
-                short_name: 'CurrConv',
-                description: 'Simple PWA Currency Converter',
+                short_name: 'Converter',
+                description: 'Convert between many currencies at once, also offline',
                 theme_color: '#ffffff',
                 background_color: '#ffffff',
                 display: 'standalone',
                 orientation: 'portrait',
-                start_url: '/converter/', // Изменено!
-                scope: '/converter/', // Добавлено!
+                start_url: BASE,
+                scope: BASE,
                 icons: [
-                    {
-                        src: '/converter/icon-192x192.svg', // Изменено!
-                        sizes: '192x192',
-                        type: 'image/svg+xml'
-                    },
-                    {
-                        src: '/converter/icon-512x512.svg', // Изменено!
-                        sizes: '512x512',
-                        type: 'image/svg+xml'
-                    }
-                ]
+                    {src: `${BASE}icon-192.png`, sizes: '192x192', type: 'image/png'},
+                    {src: `${BASE}icon-512.png`, sizes: '512x512', type: 'image/png'},
+                    {src: `${BASE}icon-512.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable'},
+                ],
             },
             workbox: {
-                globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-                navigateFallback: '/converter/index.html', // Добавлено!
-                navigateFallbackDenylist: [/^\/api/], // Исключаем API запросы
-                runtimeCaching: [
-                    {
-                        urlPattern: /^https:\/\/microverse\.space\/api\//,
-                        handler: 'NetworkFirst',
-                        options: {
-                            cacheName: 'api-cache',
-                            expiration: {
-                                maxEntries: 10,
-                                maxAgeSeconds: 300 // 5 минут
-                            }
-                        }
-                    }
-                ]
-            }
-        })
+                globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+                // The UI is English: other Inter subsets load on demand and are not worth
+                // precaching.
+                globIgnores: ['**/inter-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese,latin-ext}-*.woff2'],
+                navigateFallback: `${BASE}index.html`,
+                // Take over the page on the first visit, so it works offline right away.
+                clientsClaim: true,
+                skipWaiting: true,
+                // Rates are not cached here: the app keeps the last good response itself
+                // and must know when a request really failed.
+                runtimeCaching: [],
+            },
+        }),
     ],
     resolve: {
         alias: {
-            '@': path.resolve(__dirname, './src')
-        }
+            '@': path.resolve(__dirname, './src'),
+        },
     },
     css: {
         preprocessorOptions: {
             scss: {
-                api: 'modern-compiler'
-            }
-        }
-    }
+                api: 'modern-compiler',
+            },
+        },
+    },
 })
