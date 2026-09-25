@@ -1,0 +1,22 @@
+# Dependencies and build output
+node_modules/
+dist/
+dev-dist/
+
+# Local environment, never commit secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Local working docs and Claude Code settings
+docs-local/
+CLAUDE.local.md
+.claude/settings.local.json
+
+# OS and editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
