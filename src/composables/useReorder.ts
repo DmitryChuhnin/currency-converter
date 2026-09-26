@@ -63,6 +63,8 @@ export function useReorder(list: Ref<HTMLElement | null>, onMove: (from: number,
         handle.addEventListener('pointermove', move)
         handle.addEventListener('pointerup', end)
         handle.addEventListener('pointercancel', cancel)
+        // The mouse wheel scrolls the page without a pointermove.
+        window.addEventListener('scroll', update, {passive: true})
         frame = requestAnimationFrame(autoScroll)
     }
 
@@ -100,6 +102,7 @@ export function useReorder(list: Ref<HTMLElement | null>, onMove: (from: number,
         handle.removeEventListener('pointermove', move)
         handle.removeEventListener('pointerup', end)
         handle.removeEventListener('pointercancel', cancel)
+        window.removeEventListener('scroll', update)
         if (handle.hasPointerCapture?.(pointerId)) handle.releasePointerCapture(pointerId)
         cancelAnimationFrame(frame)
         state = null

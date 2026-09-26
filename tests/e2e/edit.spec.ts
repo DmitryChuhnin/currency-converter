@@ -178,6 +178,27 @@ test('arrow keys during a drag do not scramble the order', async ({page}) => {
     expect(await selectedCodes(page)).toEqual(['RUB', 'VND', 'THB', 'USD', 'KRW'])
 })
 
+test('the dragged row follows the page when the wheel scrolls it', async ({page, isMobile}) => {
+    test.skip(isMobile, 'mouse wheel only')
+    await page.setViewportSize({width: 800, height: 500})
+    await openEdit(page)
+    const box = (await page.getByRole('button', {name: /^Reorder US Dollar/}).boundingBox())!
+    const x = box.x + box.width / 2
+    const y = box.y + box.height / 2
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x, y + 10)
+    const dragged = page.locator('.edit-row--dragging')
+    await expect(dragged).toHaveAttribute('data-code', 'USD')
+
+    await page.mouse.wheel(0, 120)
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+    const scrolled = await page.evaluate(() => window.scrollY)
+    // Without a mouse move the row still sits under the pointer: 10px plus the scroll.
+    await expect(dragged).toHaveCSS('transform', `matrix(1, 0, 0, 1, 0, ${10 + scrolled})`)
+    await page.mouse.up()
+})
+
 test('a drag released where it started changes nothing', async ({page}) => {
     await openEdit(page)
     const box = (await page.getByRole('button', {name: /^Reorder Thai Baht/}).boundingBox())!
