@@ -27,7 +27,8 @@ export default defineConfig({
                 icons: [
                     {src: `${BASE}icon-192.png`, sizes: '192x192', type: 'image/png'},
                     {src: `${BASE}icon-512.png`, sizes: '512x512', type: 'image/png'},
-                    {src: `${BASE}icon-512.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable'},
+                    // Full-bleed: launchers crop maskable icons to their own shape.
+                    {src: `${BASE}icon-maskable-512.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable'},
                 ],
             },
             workbox: {

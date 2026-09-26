@@ -37,6 +37,9 @@ test('manifest and icons are served under the base path', async ({page, request}
     const manifest = await (await request.get(href!)).json()
     expect(manifest.start_url).toBe('/converter/')
     expect(manifest.scope).toBe('/converter/')
+    // Separate files: a rounded "any" icon would get cropped again by a maskable launcher.
+    const maskable = manifest.icons.filter((icon: {purpose?: string}) => icon.purpose === 'maskable')
+    expect(maskable.map((icon: {src: string}) => icon.src)).toEqual(['/converter/icon-maskable-512.png'])
     for (const icon of manifest.icons) {
         const res = await request.get(icon.src)
         expect(res.status(), icon.src).toBe(200)

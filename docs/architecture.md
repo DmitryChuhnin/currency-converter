@@ -90,6 +90,12 @@ Precache держит оболочку приложения и латински�
 Worker берёт страницу под контроль с первого визита (`clientsClaim`), приложение
 открывается офлайн сразу после первой загрузки.
 
+Иконки собраны из двух SVG в `public/`. `favicon.svg` со скруглёнными углами даёт обычные
+`icon-192.png` и `icon-512.png` с прозрачными углами: их показывают как есть (desktop,
+Windows). `icon.svg` без скругления даёт `icon-maskable-512.png` и `apple-touch-icon.png`:
+Android и iOS сами обрезают их под свою форму, скруглённая иконка обрезалась бы дважды.
+PNG пересобираются из SVG командой `npm run icons`.
+
 ## Тесты
 
 `npm run check` запускает `vue-tsc`, unit-тесты Vitest (`tests/unit`) и e2e Playwright
