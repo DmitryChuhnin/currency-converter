@@ -15,7 +15,6 @@ test.describe('no cached rates', () => {
         api.respond(json({error: 'boom'}, 500))
         await page.goto('./')
         await expect(page.getByRole('alert')).toContainText('The rates server returned an error. (HTTP 500)')
-        await expect(page.getByText('Showing example values for')).toBeHidden()
         await amount(page, 'USD').fill('100')
         await noNumbersExceptSource(page, 'USD')
         // The notice explains it; "No rate" on every card would blame the currencies.

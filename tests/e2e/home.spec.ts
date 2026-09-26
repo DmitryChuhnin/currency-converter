@@ -7,7 +7,6 @@ test.beforeEach(async ({page, api}) => {
 })
 
 test('empty state shows 1 USD equivalents as placeholders', async ({page}) => {
-    await expect(page.getByText('Showing example values for')).toBeVisible()
     const placeholders = await page.locator('.amount-card input').evaluateAll((inputs) =>
         inputs.map((i) => (i as HTMLInputElement).placeholder))
     expect(placeholders).toEqual(['1.00', '80.00', '26 000.00', '32.00', '1 400.00'])
@@ -15,10 +14,18 @@ test('empty state shows 1 USD equivalents as placeholders', async ({page}) => {
     await expect(page.locator('.amount-card__clear')).toHaveCount(0)
 })
 
+test('typing and clearing do not move the cards', async ({page}) => {
+    const tops = () => page.locator('.amount-card').evaluateAll((cards) => cards.map((c) => c.getBoundingClientRect().top))
+    const empty = await tops()
+    await amount(page, 'USD').fill('10')
+    expect(await tops()).toEqual(empty)
+    await amount(page, 'USD').fill('')
+    expect(await tops()).toEqual(empty)
+})
+
 test('typing in any field converts the rest', async ({page}) => {
     await amount(page, 'RUB').fill('8000')
     expect(await values(page)).toEqual({USD: '100.00', RUB: '8 000', VND: '2 600 000.00', THB: '3 200.00', KRW: '140 000.00'})
-    await expect(page.getByText('Showing example values for')).toBeHidden()
 
     await amount(page, 'USD').click()
     await page.keyboard.type('2')
@@ -39,7 +46,6 @@ test('keystrokes: comma decimal, grouping, limits', async ({page}) => {
     await usd.fill('')
     await page.keyboard.type('abc-+e')
     await expect(usd).toHaveValue('')
-    await expect(page.getByText('Showing example values for')).toBeVisible()
 })
 
 test('the 13th integer digit is ignored at the 1 trillion limit', async ({page}) => {

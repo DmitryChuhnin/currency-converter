@@ -117,7 +117,6 @@ test('removing everything leaves a way back', async ({page}) => {
     await expect(page.getByText('No currencies yet. Add some below.')).toBeVisible()
     await page.getByRole('button', {name: 'Done', exact: true}).click()
     await expect(page.getByText('No currencies yet. Add the ones you use.')).toBeVisible()
-    await expect(page.getByText('Showing example values for')).toBeHidden()
     await page.getByRole('button', {name: 'Add currency'}).click()
     await page.getByRole('button', {name: 'Add Japanese Yen'}).click()
     await page.getByRole('button', {name: 'Done', exact: true}).click()

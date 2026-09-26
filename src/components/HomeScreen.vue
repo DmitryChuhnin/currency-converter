@@ -22,9 +22,6 @@
         {{ ratesStore.loading ? 'Retrying…' : 'Retry' }}
       </button>
     </div>
-    <p v-else-if="showHint" class="notice">
-      Showing example values for <strong>$1.00</strong> — start typing in any field.
-    </p>
 
     <main class="home__list">
       <AmountCard
@@ -83,8 +80,6 @@ function setProbe(card: unknown, index: number) {
 const texts = computed(() => converter.rows.map((row) => row.value || row.placeholder))
 const fontSize = useFitFontSize(texts, probe)
 
-const showHint = computed(() => converter.isEmpty && ratesStore.rates !== null && converter.rows.length > 0)
-
 const REASONS: Record<RatesError['kind'], string> = {
   offline: "You're offline. Connect to the internet to load exchange rates.",
   network: "Can't reach the rates server. Check your connection.",
@@ -138,11 +133,6 @@ const failure = computed(() => {
   font-size: 12px;
   line-height: 1.4;
   color: var(--c-text-faint);
-
-  strong {
-    color: var(--c-text-secondary);
-    font-weight: 600;
-  }
 
   &--error {
     display: flex;
