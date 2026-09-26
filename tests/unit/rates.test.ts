@@ -61,6 +61,9 @@ describe('reviveSnapshot', () => {
         ['no fetchedAt', {rates: {USD: 1, RUB: 80}, providerTime: 1}],
         ['string fetchedAt', {...good, fetchedAt: '2000'}],
         ['string providerTime', {...good, providerTime: '1000'}],
+        ['zero providerTime', {...good, providerTime: 0}],
+        ['negative providerTime', {...good, providerTime: -1}],
+        ['zero fetchedAt', {...good, fetchedAt: 0}],
         ['no rates', {providerTime: 1, fetchedAt: 2}],
         ['zero rates', {...good, rates: {USD: 1, RUB: 0}}],
     ])('rejects %s', (_name, value) => {

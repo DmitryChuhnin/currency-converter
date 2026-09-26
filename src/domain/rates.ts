@@ -49,12 +49,15 @@ export function parseRatesPayload(payload: unknown, fetchedAt: number): RatesSna
     return {rates: valid, providerTime, fetchedAt}
 }
 
+const isValidTime = (value: unknown): value is number =>
+    typeof value === 'number' && Number.isFinite(value) && value > 0
+
 /** Guards what comes back from storage: same rules as the API, plus our own fields. */
 export function reviveSnapshot(value: unknown): RatesSnapshot | null {
     if (typeof value !== 'object' || value === null) return null
     const {rates, providerTime, fetchedAt} = value as Record<string, unknown>
-    if (typeof fetchedAt !== 'number' || !Number.isFinite(fetchedAt)) return null
-    if (providerTime !== null && typeof providerTime !== 'number') return null
+    if (!isValidTime(fetchedAt)) return null
+    if (providerTime !== null && !isValidTime(providerTime)) return null
     try {
         const parsed = parseRatesPayload({base: 'USD', rates}, fetchedAt)
         return {...parsed, providerTime}
