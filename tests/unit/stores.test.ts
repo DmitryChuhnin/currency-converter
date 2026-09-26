@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {createPinia, setActivePinia} from 'pinia'
 import {nextTick} from 'vue'
 import {STORAGE_KEYS} from '@/services/storage'
@@ -142,6 +142,78 @@ describe('rates store', () => {
         pending.resolve(snapshot)
         await back
         expect(ratesApi.fetchRates).toHaveBeenCalledTimes(1)
+    })
+
+    describe('refreshIfDue', () => {
+        const MIN = 60_000
+        const T = 1_790_000_000_000
+
+        beforeEach(() => {
+            vi.useFakeTimers({toFake: ['Date']})
+            vi.setSystemTime(T)
+        })
+        afterEach(() => vi.useRealTimers())
+
+        async function tickAt(store: ReturnType<typeof useRatesStore>, minutes: number) {
+            vi.setSystemTime(T + minutes * MIN)
+            await store.refreshIfDue()
+        }
+
+        it('refreshes rates fetched more than 30 minutes ago', async () => {
+            ratesApi.fetchRates.mockResolvedValue({...snapshot, fetchedAt: T})
+            const store = useRatesStore()
+            await store.refresh()
+            await tickAt(store, 30)
+            expect(ratesApi.fetchRates).toHaveBeenCalledTimes(1)
+            await tickAt(store, 31)
+            expect(ratesApi.fetchRates).toHaveBeenCalledTimes(2)
+        })
+
+        it('backs off after failures in a row and resets after a success', async () => {
+            ratesApi.fetchRates.mockRejectedValue(new RatesError('http', 'HTTP 429', 429))
+            const store = useRatesStore()
+            await store.refresh()
+            const calls: number[] = []
+            for (let minute = 1; minute <= 40; minute++) {
+                const before = ratesApi.fetchRates.mock.calls.length
+                await tickAt(store, minute)
+                if (ratesApi.fetchRates.mock.calls.length > before) calls.push(minute)
+            }
+            // Pauses of 1, 2, 4, 8, 16 minutes, then capped at 30.
+            expect(calls).toEqual([1, 3, 7, 15, 31])
+
+            ratesApi.fetchRates.mockResolvedValue({...snapshot, fetchedAt: T + 61 * MIN})
+            await tickAt(store, 61)
+            expect(store.error).toBeNull()
+            ratesApi.fetchRates.mockRejectedValue(new RatesError('format', 'No rates object'))
+            await tickAt(store, 92)
+            expect(store.error?.kind).toBe('format')
+            const before = ratesApi.fetchRates.mock.calls.length
+            await tickAt(store, 93)
+            expect(ratesApi.fetchRates).toHaveBeenCalledTimes(before + 1)
+        })
+
+        it('retries on a tick that fires slightly early', async () => {
+            ratesApi.fetchRates.mockRejectedValue(new RatesError('timeout', 'No response'))
+            const store = useRatesStore()
+            await store.refresh()
+            vi.setSystemTime(T + MIN - 5)
+            await store.refreshIfDue()
+            expect(ratesApi.fetchRates).toHaveBeenCalledTimes(2)
+        })
+
+        it('keeps checking every tick while offline without calling the API', async () => {
+            setOnLine(false)
+            const store = useRatesStore()
+            await store.refresh()
+            await tickAt(store, 1)
+            await tickAt(store, 2)
+            expect(ratesApi.fetchRates).not.toHaveBeenCalled()
+            setOnLine(true)
+            ratesApi.fetchRates.mockResolvedValue(snapshot)
+            await tickAt(store, 3)
+            expect(ratesApi.fetchRates).toHaveBeenCalledTimes(1)
+        })
     })
 
     it('marks rates older than 48 hours as stale', () => {

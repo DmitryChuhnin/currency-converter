@@ -1,9 +1,13 @@
 import {defineStore} from 'pinia'
 import {computed, ref, shallowRef} from 'vue'
 import {reviveSnapshot, type RatesSnapshot} from '@/domain/rates'
-import {isStale} from '@/domain/time'
+import {isStale, REFRESH_AFTER_MS, retryDelay} from '@/domain/time'
 import {fetchRates, RatesError} from '@/services/ratesApi'
 import {readJson, STORAGE_KEYS, writeJson} from '@/services/storage'
+
+// A timer can fire a few ms before Date.now() reaches its deadline; the slack keeps a
+// retry on its tick instead of the next one.
+const TIMER_SLACK_MS = 1000
 
 const navigatorOnline = () => (typeof navigator === 'undefined' ? true : navigator.onLine)
 
@@ -16,6 +20,10 @@ export const useRatesStore = defineStore('rates', () => {
     const now = ref(Date.now())
 
     let inFlight: Promise<void> | null = null
+    // Failed requests in a row. Retries back off, so a 429 or a broken API is not hit
+    // every minute.
+    let failures = 0
+    let lastAttemptAt = 0
 
     const rates = computed(() => snapshot.value?.rates ?? null)
     /** Provider time when known, otherwise when we fetched. */
@@ -33,14 +41,17 @@ export const useRatesStore = defineStore('rates', () => {
             return Promise.resolve()
         }
         loading.value = true
+        lastAttemptAt = Date.now()
         inFlight = fetchRates()
             .then((next) => {
                 snapshot.value = next
                 error.value = null
+                failures = 0
                 writeJson(STORAGE_KEYS.rates, next)
             })
             .catch((err: unknown) => {
                 error.value = err instanceof RatesError ? err : new RatesError('network', String(err))
+                failures++
             })
             .finally(() => {
                 loading.value = false
@@ -61,5 +72,15 @@ export const useRatesStore = defineStore('rates', () => {
         now.value = time
     }
 
-    return {snapshot, rates, codes, ratesTime, stale, error, loading, online, now, refresh, setOnline, tick}
+    /** Timer entry point: refreshes old rates and retries a failed update when its pause is over. */
+    function refreshIfDue(time = Date.now()): Promise<void> {
+        tick(time)
+        // Offline no request is made, so checking often costs nothing.
+        const due = error.value
+            ? error.value.kind === 'offline' || time - lastAttemptAt + TIMER_SLACK_MS >= retryDelay(failures)
+            : time - (snapshot.value?.fetchedAt ?? 0) > REFRESH_AFTER_MS
+        return due ? refresh() : Promise.resolve()
+    }
+
+    return {snapshot, rates, codes, ratesTime, stale, error, loading, online, now, refresh, refreshIfDue, setOnline, tick}
 })

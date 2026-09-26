@@ -190,4 +190,19 @@ test.describe('a tab that stays open', () => {
         await expect(page.getByRole('alert')).toBeHidden()
         expect(api.calls).toBe(2)
     })
+
+    test('spaces out retries while the API keeps refusing', async ({page, api}) => {
+        api.respond(json({error: 'rate limited'}, 429))
+        await page.clock.install({time: new Date('2026-09-25T12:00:00Z')})
+        await page.goto('./')
+        await expect(page.getByRole('alert')).toContainText('(HTTP 429)')
+        await page.clock.runFor(61_000)
+        await expect.poll(() => api.calls).toBe(2)
+        // The second failure doubles the pause to two minutes.
+        await page.clock.runFor(61_000)
+        await expect(page.getByRole('alert')).toContainText('(HTTP 429)')
+        expect(api.calls).toBe(2)
+        await page.clock.runFor(60_000)
+        await expect.poll(() => api.calls).toBe(3)
+    })
 })

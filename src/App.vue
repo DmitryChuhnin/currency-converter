@@ -12,9 +12,7 @@ import EditScreen from './components/EditScreen.vue'
 import {useRatesStore} from './stores/rates'
 import {useScreenHistory} from './composables/useScreenHistory'
 
-// Rates change once a day at the provider; this only bounds how long an open tab waits.
-const REFRESH_AFTER_MS = 30 * 60 * 1000
-// Also the retry interval after a failed update.
+// Retry pauses are whole minutes, see retryDelay.
 const TICK_MS = 60 * 1000
 
 const ratesStore = useRatesStore()
@@ -50,10 +48,7 @@ const onOnline = () => ratesStore.setOnline(true)
 const onOffline = () => ratesStore.setOnline(false)
 
 function refreshIfDue() {
-  if (document.visibilityState !== 'visible') return
-  ratesStore.tick()
-  const fetchedAt = ratesStore.snapshot?.fetchedAt ?? 0
-  if (ratesStore.error || Date.now() - fetchedAt > REFRESH_AFTER_MS) ratesStore.refresh()
+  if (document.visibilityState === 'visible') ratesStore.refreshIfDue()
 }
 
 let timer: ReturnType<typeof setInterval> | undefined

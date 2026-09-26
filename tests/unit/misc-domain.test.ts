@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest'
 import {fitFontSize} from '@/domain/fit'
 import {dropIndex, moveItem} from '@/domain/reorder'
-import {formatUpdated, isStale, STALE_AFTER_MS} from '@/domain/time'
+import {formatUpdated, isStale, REFRESH_AFTER_MS, retryDelay, STALE_AFTER_MS} from '@/domain/time'
 import {CURRENCIES, currencyInfo, DEFAULT_SELECTION} from '@/domain/currencies'
 
 // 10 px per character at the max size keeps the arithmetic readable
@@ -74,6 +74,13 @@ describe('isStale', () => {
     it('flags rates older than 48 hours', () => {
         expect(isStale(0, STALE_AFTER_MS)).toBe(false)
         expect(isStale(0, STALE_AFTER_MS + 1)).toBe(true)
+    })
+})
+
+describe('retryDelay', () => {
+    it('doubles from a minute and stops at the refresh interval', () => {
+        expect([0, 1, 2, 3, 4, 5, 6, 50].map(retryDelay)).toEqual(
+            [60e3, 60e3, 120e3, 240e3, 480e3, 960e3, REFRESH_AFTER_MS, REFRESH_AFTER_MS])
     })
 })
 
