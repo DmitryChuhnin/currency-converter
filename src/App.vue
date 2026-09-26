@@ -1,7 +1,7 @@
 <template>
   <div class="app">
     <HomeScreen v-if="screen === 'home'" ref="home" @edit="openEdit"/>
-    <EditScreen v-else :focus-search="focusSearch" @close="closeEdit"/>
+    <EditScreen v-else :focus-search="focusSearch" @close="close"/>
   </div>
 </template>
 
@@ -29,10 +29,6 @@ function openEdit(adding: boolean) {
   homeScroll = window.scrollY
   open()
   window.scrollTo(0, 0)
-}
-
-function closeEdit() {
-  close()
 }
 
 // Restore the home screen where the user left it, also after the system back gesture.

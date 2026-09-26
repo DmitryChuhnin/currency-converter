@@ -188,10 +188,13 @@ export const POPULAR: readonly string[] = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'C
 
 export const CURRENCY_CODE = /^[A-Z]{3}$/
 
+let displayNames: Intl.DisplayNames | undefined
+
 function describeUnknown(code: string): CurrencyInfo {
     let name = code
     try {
-        name = new Intl.DisplayNames(['en'], {type: 'currency'}).of(code) ?? code
+        displayNames ??= new Intl.DisplayNames(['en'], {type: 'currency'})
+        name = displayNames.of(code) ?? code
     } catch {
         // Intl.DisplayNames is missing on old engines, the code alone is enough
     }

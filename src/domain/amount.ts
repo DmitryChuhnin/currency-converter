@@ -65,11 +65,9 @@ function clean(plain: string): string {
     return frac === null ? int : `${int}.${frac}`
 }
 
-// Pasted text comes with someone else's grouping: "1,234.56", "1.234,56", "1,234,567".
-// The last separator is decimal when both kinds are present; a repeated one is grouping.
-// A single comma before exactly three digits is grouping too ("$1,234"): reading it as
-// a decimal would cut the amount a thousand times. A single dot stays decimal, since
-// "1.234" is a normal amount in KWD, BHD and OMR.
+// Of two kinds of separator the last is decimal; a repeated one is grouping. A lone comma
+// before three digits is grouping ("$1,234"), a lone dot stays decimal: "1.234" is a
+// normal amount in KWD, BHD and OMR.
 function separatorsForPaste(text: string): string {
     const lastDot = text.lastIndexOf('.')
     const lastComma = text.lastIndexOf(',')
