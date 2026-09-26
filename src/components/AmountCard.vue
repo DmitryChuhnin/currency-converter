@@ -29,6 +29,7 @@
         @input="onInput"
         @compositionend="onCompositionEnd"
         @focus="onFocus"
+        @mousedown="onMouseDown"
         @mouseup="onMouseUp"
         @blur="focused = false"
         @keydown.enter="inputRef?.blur()"
@@ -93,6 +94,12 @@ function onFocus() {
   // A converted value is replaced by typing rather than appended to.
   selectedOnFocus = !props.isSource && props.value !== ''
   if (selectedOnFocus) inputRef.value?.select()
+}
+
+function onMouseDown() {
+  // Focus by keyboard or by a tap on the card leaves the flag set; a press in a field
+  // that already has focus is not the focusing click.
+  if (document.activeElement === inputRef.value) selectedOnFocus = false
 }
 
 function onMouseUp(event: MouseEvent) {

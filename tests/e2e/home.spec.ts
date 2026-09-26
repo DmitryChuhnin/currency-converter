@@ -153,6 +153,20 @@ test('focusing a converted value selects it, so typing replaces it', async ({pag
     expect(await values(page)).toMatchObject({RUB: '5', USD: '0.06'})
 })
 
+for (const how of ['card', 'keyboard'] as const) {
+    test(`a click after focus by ${how} places the caret in a selected converted value`, async ({page}) => {
+        await amount(page, 'USD').fill('10')
+        const rub = amount(page, 'RUB')
+        if (how === 'card') await page.locator('.amount-card[data-code="RUB"] .amount-card__code').click()
+        else await rub.focus()
+        await expect(rub).toBeFocused()
+        expect(await rub.evaluate((i: HTMLInputElement) => [i.selectionStart, i.selectionEnd])).toEqual([0, 6])
+        const box = (await rub.boundingBox())!
+        await page.mouse.click(box.x + box.width - 2, box.y + box.height / 2)
+        expect(await rub.evaluate((i: HTMLInputElement) => i.selectionStart === i.selectionEnd)).toBe(true)
+    })
+}
+
 test('a digit that does not fit a converted value leaves the source alone', async ({page}) => {
     await amount(page, 'USD').fill('10')
     const rub = amount(page, 'RUB')
