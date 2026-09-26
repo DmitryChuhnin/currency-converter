@@ -4,17 +4,16 @@ export const MAX_DECIMALS = 2
 const GROUPING_CHARS = /[\s'’_]/g
 
 /**
- * Turns what the user typed into canonical form: digits, at most one '.', at most
- * MAX_DECIMALS decimals, no leading zeros. Returns `previous` when the result would
- * exceed MAX_AMOUNT and grow, so the extra keystroke is ignored. Shrinking is allowed:
- * a converted amount can be above the limit and still needs Backspace.
- *
- * Typing: ',' is a decimal separator (the iOS decimal pad in ru locale shows ','), extra
- * separators after the first are dropped. Paste: see separatorsForPaste().
+ * Canonical form of the field: digits, at most one '.' and MAX_DECIMALS decimals, no leading
+ * zeros. ',' is decimal too, the iOS decimal pad in ru locale shows it. Paste: see readPasted().
  */
 export function normalizeInput(raw: string, previous = '', paste = false): string {
-    const result = clean(raw, paste)
+    const text = paste ? readPasted(raw) : toPlain(raw)
+    // A second separator would move the decimal point of the number, so it is ignored.
+    if (previous.includes('.') && (text.match(/[.,]/g)?.length ?? 0) > 1) return previous
+    const result = clean(text)
     const n = Number(result)
+    // Growing past the limit is ignored; a converted amount above it still needs Backspace.
     if (result !== '' && n > MAX_AMOUNT && n >= Number(previous || 0)) return previous
     return result
 }
@@ -24,10 +23,15 @@ export function normalizeInput(raw: string, previous = '', paste = false): strin
  * Counting raw characters fails when normalization adds some (".5" becomes "0.5").
  */
 export function caretAfterNormalize(rawBeforeCaret: string, formatted: string): number {
-    const before = clean(rawBeforeCaret, false)
+    const before = clean(toPlain(rawBeforeCaret))
     // A zero typed in front of digits is dropped from the whole value, not only the prefix.
     if (before === '0' && !formatted.startsWith('0')) return 0
     return caretIndex(formatted, before.length)
+}
+
+/** Pasted or dropped text with its foreign grouping removed and one decimal separator at most. */
+export function readPasted(raw: string): string {
+    return separatorsForPaste(toPlain(raw))
 }
 
 // Full-width forms come from CJK IMEs, the others from Arabic and Persian keyboards.
@@ -44,10 +48,12 @@ function toAscii(char: string): string {
     return '' // U+066C Arabic thousands separator
 }
 
-function clean(raw: string, paste: boolean): string {
-    let text = raw.replace(FOREIGN_CHARS, toAscii).replace(GROUPING_CHARS, '')
-    if (paste) text = separatorsForPaste(text)
-    text = text.replace(/,/g, '.').replace(/[^\d.]/g, '')
+function toPlain(raw: string): string {
+    return raw.replace(FOREIGN_CHARS, toAscii).replace(GROUPING_CHARS, '')
+}
+
+function clean(plain: string): string {
+    const text = plain.replace(/,/g, '.').replace(/[^\d.]/g, '')
 
     const dot = text.indexOf('.')
     let int = dot === -1 ? text : text.slice(0, dot)

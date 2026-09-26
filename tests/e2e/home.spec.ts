@@ -69,6 +69,17 @@ test('editing in the middle keeps the caret in place', async ({page}) => {
     await expect(usd).toHaveValue('123 945')
 })
 
+test('a second separator is ignored and the caret stays', async ({page}) => {
+    const usd = amount(page, 'USD')
+    await usd.click()
+    await page.keyboard.type('1234.5')
+    await usd.evaluate((i: HTMLInputElement) => i.setSelectionRange(3, 3))
+    await page.keyboard.type(',')
+    await expect(usd).toHaveValue('1 234.5')
+    await page.keyboard.type('9')
+    await expect(usd).toHaveValue('12 934.5')
+})
+
 test('Delete and Backspace step over a group space', async ({page}) => {
     const usd = amount(page, 'USD')
     await usd.fill('1234')
@@ -102,6 +113,22 @@ test('paste understands foreign grouping', async ({page, browserName}) => {
     await page.keyboard.press('ControlOrMeta+V')
     await expect(usd).toHaveValue('1 234.56')
     expect((await values(page)).RUB).toBe('98 764.80')
+})
+
+test('paste reads grouping in the pasted text only', async ({page, browserName}) => {
+    test.skip(browserName === 'webkit', 'WebKit in Playwright has no clipboard permission API')
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+    const usd = amount(page, 'USD')
+    await usd.click()
+    await page.keyboard.type('5.')
+    await page.evaluate(() => navigator.clipboard.writeText('1,234'))
+    await page.keyboard.press('ControlOrMeta+V')
+    await expect(usd).toHaveValue('5.12')
+
+    await usd.fill('1000')
+    await usd.selectText()
+    await page.keyboard.press('ControlOrMeta+V')
+    await expect(usd).toHaveValue('1 234')
 })
 
 test('clear ✕ empties every field and keeps focus for the next number', async ({page}) => {

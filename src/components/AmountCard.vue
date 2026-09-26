@@ -25,6 +25,7 @@
         autocomplete="off"
         autocorrect="off"
         spellcheck="false"
+        @beforeinput="onBeforeInput"
         @input="onInput"
         @compositionend="onCompositionEnd"
         @focus="onFocus"
@@ -49,7 +50,7 @@
 import {computed, ref} from 'vue'
 import AppIcon from './AppIcon.vue'
 import type {CurrencyInfo} from '@/domain/currencies'
-import {caretAfterNormalize, groupDigits, normalizeInput} from '@/domain/amount'
+import {caretAfterNormalize, groupDigits, normalizeInput, readPasted} from '@/domain/amount'
 
 // iOS Safari zooms the page when a focused input's text is smaller than 16px.
 const MIN_FOCUSED_FONT = 16
@@ -77,6 +78,8 @@ const warningId = computed(() => `no-rate-${props.info.code}`)
 defineExpose({input: inputRef})
 
 let selectedOnFocus = false
+// The field around the selection right before an insertion: tells the inserted text apart.
+let pending: {inputType: string; before: string; after: string} | null = null
 
 function onCardClick(event: MouseEvent) {
   // A tap anywhere on the card edits its amount, as on the mockup. Focus happens in a
@@ -98,6 +101,22 @@ function onMouseUp(event: MouseEvent) {
   selectedOnFocus = false
 }
 
+function onBeforeInput(event: Event) {
+  const input = event.target as HTMLInputElement
+  const start = input.selectionStart ?? input.value.length
+  const end = input.selectionEnd ?? start
+  pending = {inputType: (event as InputEvent).inputType, before: input.value.slice(0, start), after: input.value.slice(end)}
+}
+
+function takeInsertion(raw: string, inputType: string) {
+  const snapshot = pending
+  pending = null
+  if (!snapshot || snapshot.inputType !== inputType) return null
+  const {before, after} = snapshot
+  if (raw.length < before.length + after.length || !raw.startsWith(before) || !raw.endsWith(after)) return null
+  return {before, text: raw.slice(before.length, raw.length - after.length), after}
+}
+
 function onInput(event: Event) {
   const {inputType, isComposing} = event as InputEvent
   // Rewriting the value mid-composition breaks CJK IMEs; compositionend takes over.
@@ -114,6 +133,7 @@ function apply(input: HTMLInputElement, inputType: string) {
   const previous = props.value.replace(/ /g, '')
   let raw = input.value
   let at = input.selectionStart ?? raw.length
+  const insertion = paste || inputType === 'insertText' ? takeInsertion(raw, inputType) : null
 
   // Deleting only a group space would be undone by regrouping and Delete would stall,
   // so the digit next to the space goes instead.
@@ -125,16 +145,24 @@ function apply(input: HTMLInputElement, inputType: string) {
       at -= 1
     }
   }
-  const beforeCaret = raw.slice(0, at)
-
-  const canonical = normalizeInput(raw, previous, paste)
+  let beforeCaret = raw.slice(0, at)
+  let canonical: string
+  if (insertion) {
+    // Foreign grouping is read in the pasted text only, the rest of the field is ours.
+    const text = paste ? readPasted(insertion.text) : insertion.text
+    canonical = normalizeInput(insertion.before + text + insertion.after, previous)
+    // A rejected insertion leaves the caret where it was.
+    beforeCaret = canonical === previous ? insertion.before : insertion.before + text
+  } else {
+    canonical = normalizeInput(raw, previous, paste)
+  }
   const formatted = groupDigits(canonical)
 
   // The parent may not re-render when the canonical value did not change (a rejected
   // keystroke), so the DOM is corrected here rather than waiting for props.
   if (input.value !== formatted) {
     input.value = formatted
-    const caret = paste ? formatted.length : caretAfterNormalize(beforeCaret, formatted)
+    const caret = paste && !insertion ? formatted.length : caretAfterNormalize(beforeCaret, formatted)
     input.setSelectionRange(caret, caret)
   }
   // A rejected keystroke in a converted field must not make that field the source.

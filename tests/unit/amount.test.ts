@@ -7,6 +7,7 @@ import {
     MAX_AMOUNT,
     normalizeInput,
     parseCanonical,
+    readPasted,
 } from '@/domain/amount'
 
 describe('normalizeInput: typing', () => {
@@ -47,6 +48,23 @@ describe('normalizeInput: typing', () => {
         expect(normalizeInput('10000000000000', '1000000000000')).toBe('1000000000000')
         expect(normalizeInput('1000000000000.01', '1000000000000.0')).toBe('1000000000000.0')
         expect(Number(normalizeInput('999999999999.99'))).toBeLessThanOrEqual(MAX_AMOUNT)
+    })
+
+    it.each([
+        ['12.34.5', '1234.5'],
+        ['12,34.5', '1234.5'],
+        ['1.,5', '1.5'],
+        ['1.5,', '1.5'],
+        ['1.5.', '1.5'],
+        ['12．34.5', '1234.5'],
+        ['0.00.0038', '0.000038'],
+    ])('ignores a second separator: %j stays %j', (raw, previous) => {
+        expect(normalizeInput(raw, previous)).toBe(previous)
+    })
+
+    it('accepts a separator that replaces the existing one', () => {
+        expect(normalizeInput('1,', '1.5')).toBe('1.')
+        expect(normalizeInput('12,5', '1.5')).toBe('12.5')
     })
 
     it('lets Backspace shorten a converted amount that is above the limit', () => {
@@ -99,6 +117,17 @@ describe('normalizeInput: paste', () => {
 
     it('treats a typed comma as decimal even before three digits', () => {
         expect(normalizeInput('1,234')).toBe('1.23')
+    })
+
+    it('reads the pasted part only, so the field keeps its own decimal point', () => {
+        expect(normalizeInput(`5.${readPasted('1,234')}`, '5.')).toBe('5.12')
+        expect(normalizeInput(`12${readPasted('1,000')}`, '12')).toBe('121000')
+        expect(normalizeInput(readPasted('1,234'), '1000')).toBe('1234')
+    })
+
+    it('ignores a pasted decimal when the field already has one', () => {
+        expect(normalizeInput(`5.5${readPasted('1.5')}`, '5.5')).toBe('5.5')
+        expect(normalizeInput(`5.5${readPasted('1.234,5')}`, '5.5')).toBe('5.5')
     })
 
     it('ignores a paste that is over the limit', () => {
