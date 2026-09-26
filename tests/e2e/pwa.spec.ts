@@ -30,6 +30,16 @@ test('one service worker; the app reloads offline with cached rates', async ({pa
     await expect(page.locator('.amount-card[data-code="RUB"] input')).toHaveValue('800.00')
 })
 
+test('the API cache of the pre-redesign worker is deleted', async ({page}) => {
+    await page.goto('./')
+    await page.evaluate(async () => {
+        const cache = await caches.open('api-cache')
+        await cache.put('/converter/old-api', new Response('{}'))
+    })
+    await page.reload()
+    await expect.poll(() => page.evaluate(() => caches.has('api-cache'))).toBe(false)
+})
+
 test('manifest and icons are served under the base path', async ({page, request}) => {
     await page.goto('./')
     const href = await page.locator('link[rel="manifest"]').getAttribute('href')
