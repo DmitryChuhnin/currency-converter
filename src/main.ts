@@ -1,18 +1,11 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
+import {createApp} from 'vue'
+import {createPinia} from 'pinia'
+import '@fontsource-variable/inter'
 import App from './App.vue'
 
-const app = createApp(App)
-const pinia = createPinia()
+// The service worker is registered by registerSW.js, which vite-plugin-pwa injects.
+createApp(App).use(createPinia()).mount('#app')
 
-app.use(pinia)
-app.mount('#app')
-
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/converter/sw.js')
-      .then(registration => console.log('SW registered:', registration))
-      .catch(error => console.log('SW registration failed:', error))
-  })
-}
+// The pre-redesign worker cached API responses under this name. Workbox cleans up only
+// its precache, so the leftover is removed here.
+if ('caches' in window) caches.delete('api-cache').catch(() => undefined)

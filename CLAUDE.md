@@ -26,7 +26,8 @@
 
 1. Ветка от свежего `dev`.
 2. PR фича-ветки в `dev`, ревью, merge.
-3. Когда в `dev` собран релиз: `npm run build` зелёный, приложение проверено в браузере.
+3. Когда в `dev` собран релиз: `npm run build` и `npm run check` зелёные, приложение проверено
+   в браузере.
 4. PR `dev` → `main`. Merge этого PR и есть релиз.
 5. На merge-коммите в `main` ставим тег `vX.Y.Z` и поднимаем `version` в `package.json`
    в том же релизе.
@@ -39,8 +40,13 @@
 - `npm run dev` — dev-сервер Vite.
 - `npm run build` — проверка типов `vue-tsc` и сборка в `dist/`.
 - `npm run preview` — раздача собранного `dist/`.
-- Тестов и линтера нет. Работа готова, когда `npm run build` проходит и правка проверена
-  в браузере на desktop и mobile.
+- `npm test` — unit-тесты Vitest (`tests/unit`).
+- `npm run test:e2e` — e2e Playwright (`tests/e2e`) на production-сборке: Chromium desktop,
+  WebKit iPhone, Chromium Android. Нужны браузеры: `npx playwright install chromium webkit`.
+- `npm run check` — `vue-tsc`, unit и e2e подряд. Линтера нет.
+- Правка поведения идёт с тестом, включая негативные случаи: ошибка API, битый ответ,
+  офлайн, граничный ввод. Работа готова, когда `npm run build` и `npm run check` проходят
+  и правка проверена в браузере на desktop и mobile.
 
 ## Коммиты
 
@@ -54,9 +60,9 @@
 
 - `index.html` в корне — точка входа Vite, без него `npm run dev` не стартует.
   Его уже удаляли по ошибке вместе со старой версией.
-- Приложение живёт на подпути `/converter/` (`base` в `vite.config.ts`). Пути в манифесте
-  PWA и в регистрации service worker в `src/main.ts` прописаны с этим префиксом руками,
-  при смене `base` их надо менять вместе.
+- Приложение живёт на подпути `/converter/` (константа `BASE` в `vite.config.ts`). Манифест
+  PWA берёт пути из неё, `baseURL` в `playwright.config.ts` прописан руками, при смене
+  подпути их надо менять вместе.
 - `dist/` в git не хранится, сборка воспроизводится из исходников.
 
 ## Стиль
