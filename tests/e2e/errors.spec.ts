@@ -198,6 +198,9 @@ test.describe('a tab that stays open', () => {
         await expect(page.getByRole('alert')).toContainText('(HTTP 429)')
         await page.clock.runFor(61_000)
         await expect.poll(() => api.calls).toBe(2)
+        // calls counts the request, not its handling: moving the clock before the 429 lands
+        // fires the 10 s timeout instead.
+        await expect(page.getByRole('alert').getByRole('button', {name: 'Retry', exact: true})).toBeEnabled()
         // The second failure doubles the pause to two minutes.
         await page.clock.runFor(61_000)
         await expect(page.getByRole('alert')).toContainText('(HTTP 429)')
