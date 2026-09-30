@@ -1,28 +1,18 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <title>Сonvert сurrency</title>
-</head>
-<body>
-    <div class="main">
-        <h1>Сonvert сurrency</h1>
-        <div class="inf">
-            <p id="text"></p>
-        </div>
-        <div class="inputs">
-            <label for="from">from currency (ex. USD)</label>
-            <input type="text" id="from"><br>
-            <label for="to">to currency (ex. RUB)</label>
-            <input type="text" id="to"><br>
-            <label for="amm">ammount (ex. 50)</label>
-            <input type="text" id="amm"><br>
-        </div>
-        
-    </div>
-    <script src="main.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="description" content="Convert between many currencies at once, also offline" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Converter" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <title>Currency Converter</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>
