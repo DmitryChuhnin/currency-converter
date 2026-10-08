@@ -13,7 +13,7 @@ async function openEdit(page: Page) {
 test.beforeEach(async ({page, api}) => {
     void api
     await page.goto('./')
-    await expect(page.getByRole('status')).toHaveText('Updated 25 Sep, 00:00')
+    await expect(page.getByRole('status')).toHaveText('Rates 25 Sep, 00:00 · checked 12:00')
 })
 
 test('Back, Done and the system back all return home', async ({page}) => {
