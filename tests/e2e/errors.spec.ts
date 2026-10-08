@@ -121,7 +121,7 @@ test.describe('with cached rates', () => {
 
     test('offline and back online', async ({page, api, context}) => {
         await page.goto('./')
-        await expect(page.getByRole('status')).toHaveText('Updated 25 Sep, 00:00')
+        await expect(page.getByRole('status')).toHaveText('Rates 25 Sep, 00:00 · checked 12:00')
         await context.setOffline(true)
         await expect(page.getByRole('status')).toHaveText('Offline · rates from 25 Sep, 00:00')
         await amount(page, 'USD').fill('2')
@@ -129,7 +129,7 @@ test.describe('with cached rates', () => {
 
         const before = api.calls
         await context.setOffline(false)
-        await expect(page.getByRole('status')).toHaveText('Updated 25 Sep, 00:00')
+        await expect(page.getByRole('status')).toHaveText('Rates 25 Sep, 00:00 · checked 12:00')
         expect(api.calls).toBeGreaterThan(before)
     })
 
@@ -151,7 +151,7 @@ test.describe('broken local storage', () => {
         }, STORAGE_KEYS)
         await page.goto('./')
         await expect(page.locator('.amount-card')).toHaveCount(5)
-        await expect(page.getByRole('status')).toHaveText('Updated 25 Sep, 00:00')
+        await expect(page.getByRole('status')).toHaveText('Rates 25 Sep, 00:00 · checked 12:00')
     })
 
     test('storage that throws does not break the app', async ({page, api}) => {
@@ -173,7 +173,7 @@ test.describe('a tab that stays open', () => {
     test('refreshes rates after half an hour without a visibility change', async ({page, api}) => {
         await page.clock.install({time: new Date('2026-09-25T12:00:00Z')})
         await page.goto('./')
-        await expect(page.getByRole('status')).toHaveText('Updated 25 Sep, 00:00')
+        await expect(page.getByRole('status')).toHaveText('Rates 25 Sep, 00:00 · checked 12:00')
         await page.clock.runFor(29 * 60_000)
         expect(api.calls).toBe(1)
         await page.clock.runFor(2 * 60_000)

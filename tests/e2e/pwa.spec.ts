@@ -14,7 +14,7 @@ test.beforeEach(async ({context, page}) => {
 
 test('one service worker; the app reloads offline with cached rates', async ({page, context}) => {
     await page.goto('./')
-    await expect(page.getByRole('status')).toHaveText('Updated 25 Sep, 00:00')
+    await expect(page.getByRole('status')).toHaveText('Rates 25 Sep, 00:00 · checked 12:00')
     await page.evaluate(async () => {
         await navigator.serviceWorker.ready
     })

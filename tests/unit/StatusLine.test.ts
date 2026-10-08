@@ -5,13 +5,15 @@ import StatusLine from '@/components/StatusLine.vue'
 import {useRatesStore} from '@/stores/rates'
 import {RatesError} from '@/services/ratesApi'
 
-const DAY = 24 * 3600e3
+const MIN = 60e3
+const HOUR = 60 * MIN
+const DAY = 24 * HOUR
 const T = new Date(2026, 8, 25, 3, 0).getTime()
 
-function setup(patch: Partial<{time: number | null; loading: boolean; error: RatesError | null; online: boolean; now: number}>) {
+function setup(patch: Partial<{time: number | null; fetchedAt: number; loading: boolean; error: RatesError | null; online: boolean; now: number}>) {
     const store = useRatesStore()
     const time = patch.time === undefined ? T : patch.time
-    store.snapshot = time === null ? null : {rates: {USD: 1, RUB: 80}, providerTime: time, fetchedAt: time}
+    store.snapshot = time === null ? null : {rates: {USD: 1, RUB: 80}, providerTime: time, fetchedAt: patch.fetchedAt ?? time + 30 * MIN}
     store.loading = patch.loading ?? false
     store.error = patch.error ?? null
     store.online = patch.online ?? true
@@ -26,7 +28,8 @@ beforeEach(() => {
 
 describe('StatusLine', () => {
     it.each([
-        ['fresh rates', {}, 'Updated 25 Sep, 03:00', false],
+        ['fresh rates', {}, 'Rates 25 Sep, 03:00 · checked 03:30', false],
+        ['checked before midnight', {fetchedAt: T + 20 * HOUR + 50 * MIN, now: T + 21 * HOUR + 10 * MIN}, 'Rates 25 Sep, 03:00 · checked 25 Sep, 23:50', false],
         ['first load', {time: null, loading: true}, 'Loading rates…', false],
         ['nothing and not loading', {time: null}, 'No rates yet', false],
         ['refreshing', {loading: true}, 'Updating…', false],

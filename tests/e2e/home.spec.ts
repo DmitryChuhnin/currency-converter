@@ -1,9 +1,9 @@
-import {amount, expect, test, values} from './fixtures'
+import {amount, expect, json, test, values} from './fixtures'
 
 test.beforeEach(async ({page, api}) => {
     void api
     await page.goto('./')
-    await expect(page.getByRole('status')).toHaveText('Updated 25 Sep, 00:00')
+    await expect(page.getByRole('status')).toHaveText('Rates 25 Sep, 00:00 · checked 12:00')
 })
 
 test('empty state shows 1 USD equivalents as placeholders', async ({page}) => {
@@ -233,6 +233,19 @@ test('refresh: a double tap sends one request', async ({page, api}) => {
     await status.click({force: true})
     await expect(page.getByRole('status')).toHaveText('Updating…')
     release()
-    await expect(page.getByRole('status')).toHaveText('Updated 25 Sep, 00:00')
+    await expect(page.getByRole('status')).toHaveText('Rates 25 Sep, 00:00 · checked 12:00')
     expect(api.calls - callsBefore).toBe(1)
+})
+
+test('refresh: the provider time stays, the checked time moves', async ({page, api}) => {
+    const status = page.getByRole('button', {name: /Refresh rates$/})
+    await page.clock.setFixedTime(new Date('2026-09-25T12:05:00Z'))
+    await status.click()
+    await expect(page.getByRole('status')).toHaveText('Rates 25 Sep, 00:00 · checked 12:05')
+    expect(api.calls).toBe(2)
+
+    api.respond(json({}, 503))
+    await page.clock.setFixedTime(new Date('2026-09-25T12:10:00Z'))
+    await status.click()
+    await expect(page.getByRole('status')).toHaveText("Couldn't update · rates from 25 Sep, 00:00")
 })
