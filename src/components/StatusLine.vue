@@ -20,11 +20,13 @@
 import {computed} from 'vue'
 import AppIcon from './AppIcon.vue'
 import {useRatesStore} from '@/stores/rates'
-import {formatUpdated} from '@/domain/time'
+import {formatChecked, formatUpdated} from '@/domain/time'
 
 const ratesStore = useRatesStore()
 
 const when = computed(() => (ratesStore.ratesTime === null ? '' : formatUpdated(ratesStore.ratesTime, ratesStore.now)))
+// The provider time stays the same all day, so a manual refresh shows up only here.
+const checked = computed(() => (ratesStore.snapshot ? formatChecked(ratesStore.snapshot.fetchedAt, ratesStore.now) : ''))
 
 const text = computed(() => {
   const {loading, error, ratesTime, online, stale} = ratesStore
@@ -34,7 +36,7 @@ const text = computed(() => {
   if (error) return `Couldn't update · rates from ${when.value}`
   // Said in words, not only by colour.
   if (stale) return `Outdated · rates from ${when.value}`
-  return `Updated ${when.value}`
+  return `Rates ${when.value} · checked ${checked.value}`
 })
 
 const tone = computed(() => {

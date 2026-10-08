@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest'
 import {fitFontSize} from '@/domain/fit'
 import {dropIndex, moveItem} from '@/domain/reorder'
-import {formatUpdated, isStale, REFRESH_AFTER_MS, retryDelay, STALE_AFTER_MS} from '@/domain/time'
+import {formatChecked, formatUpdated, isStale, REFRESH_AFTER_MS, retryDelay, STALE_AFTER_MS} from '@/domain/time'
 import {CURRENCIES, currencyInfo, DEFAULT_SELECTION} from '@/domain/currencies'
 
 // 10 px per character at the max size keeps the arithmetic readable
@@ -67,6 +67,19 @@ describe('formatUpdated', () => {
     it('adds the year when it is not this year', () => {
         const t = new Date(2025, 11, 31, 23, 59).getTime()
         expect(formatUpdated(t, new Date(2026, 0, 1).getTime())).toBe('31 Dec 2025, 23:59')
+    })
+})
+
+describe('formatChecked', () => {
+    it('gives only the time on the same local day', () => {
+        const t = new Date(2026, 6, 24, 0, 5).getTime()
+        expect(formatChecked(t, new Date(2026, 6, 24, 23, 59).getTime())).toBe('00:05')
+    })
+
+    it('adds the date after midnight, so yesterday 23:50 does not read as today', () => {
+        const t = new Date(2026, 6, 24, 23, 50).getTime()
+        expect(formatChecked(t, new Date(2026, 6, 25, 0, 10).getTime())).toBe('24 Jul, 23:50')
+        expect(formatChecked(new Date(2025, 11, 31, 23, 50).getTime(), new Date(2026, 0, 1).getTime())).toBe('31 Dec 2025, 23:50')
     })
 })
 

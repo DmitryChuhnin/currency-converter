@@ -9,6 +9,13 @@ export function formatUpdated(time: number, now: number): string {
     return `${date.getDate()} ${MONTHS[date.getMonth()]}${year}, ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+/** "14:32" when `time` is on the same local day as `now`, otherwise as `formatUpdated`. */
+export function formatChecked(time: number, now: number): string {
+    const date = new Date(time)
+    if (date.toDateString() !== new Date(now).toDateString()) return formatUpdated(time, now)
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 export const STALE_AFTER_MS = 48 * 60 * 60 * 1000
 
 export function isStale(time: number, now: number): boolean {
