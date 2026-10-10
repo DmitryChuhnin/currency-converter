@@ -31,6 +31,20 @@ test('one service worker; the app reloads offline with cached rates', async ({pa
     await expect(page.locator('.amount-card[data-code="RUB"] input')).toHaveValue('800.00')
 })
 
+test('a page the worker serves reloads when a new worker takes it over', async ({page}) => {
+    await page.goto('./')
+    await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true)
+    await page.reload()
+    await page.evaluate(() => document.body.setAttribute('data-old-bundle', ''))
+    const reloaded = page.waitForEvent('load')
+    // What the worker of a new build does with skipWaiting and clientsClaim. A real second
+    // build is out of reach: Playwright does not route the worker script.
+    await page.evaluate(() => navigator.serviceWorker.dispatchEvent(new Event('controllerchange')))
+    await reloaded
+    await expect(page.locator('body[data-old-bundle]')).toHaveCount(0)
+    await expect(page.getByRole('heading', {name: 'Converter'})).toBeVisible()
+})
+
 test('caches carry the app id; only its own outdated precache is deleted', async ({page, baseURL}) => {
     const {origin, href: scope} = new URL(baseURL!)
     const outdated = `workbox-precache-v2-${scope}`
