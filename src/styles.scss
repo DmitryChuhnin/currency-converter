@@ -33,11 +33,28 @@ html,
 body {
   margin: 0;
   min-height: 100%;
+  // No double-tap zoom. Pinch zoom stays: iOS ignores user-scalable=no, and on Android
+  // it would take zoom away from people who need it.
+  touch-action: manipulation;
 }
 
 body {
   background: var(--c-surface);
   color: var(--c-text);
+  // A long press neither selects text nor opens the iOS callout.
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+// Safari stops taking input in a field under user-select: none, and amounts are copied
+// from the fields.
+input,
+textarea,
+[contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 button,

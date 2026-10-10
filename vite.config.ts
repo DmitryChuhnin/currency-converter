@@ -15,9 +15,13 @@ export default defineConfig({
             injectRegister: 'script',
             includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
             manifest: {
+                // Browsers took start_url as the id while there was none, so installed apps
+                // keep their identity.
+                id: BASE,
                 name: 'Currency Converter',
                 short_name: 'Converter',
                 description: 'Convert between many currencies at once, also offline',
+                lang: 'en',
                 theme_color: '#ffffff',
                 background_color: '#ffffff',
                 display: 'standalone',
@@ -32,6 +36,9 @@ export default defineConfig({
                 ],
             },
             workbox: {
+                // Other apps share the origin and its Cache Storage: cache names start with
+                // this app's id. Workbox deletes outdated precaches of this scope only.
+                cacheId: 'converter',
                 globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
                 // The UI is English: other Inter subsets load on demand and are not worth
                 // precaching.
