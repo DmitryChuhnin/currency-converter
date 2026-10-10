@@ -32,6 +32,12 @@ export function watchWorkerUpdates(
 
     for (const type of USER_INPUT) window.addEventListener(type, () => (touched = true), {capture: true, signal})
 
+    // Leaving for another page fires pagehide, then visibilitychange. A reload from there can take
+    // the tab back here in Chromium, so a leaving page keeps the reload for a later hide.
+    let leaving = false
+    window.addEventListener('pagehide', () => (leaving = true), {signal})
+    window.addEventListener('pageshow', () => (leaving = false), {signal})
+
     function reloadOnce() {
         if (reloaded) return
         reloaded = true
@@ -49,14 +55,14 @@ export function watchWorkerUpdates(
         void firstWorker.then((first) => {
             if (first && takeover === 1) return
             // The typed amount is not stored: a page the user touched waits until they leave it.
-            if (document.visibilityState === 'hidden' || !touched) reloadOnce()
+            if (!leaving && (document.visibilityState === 'hidden' || !touched)) reloadOnce()
             else reloadWhenHidden = true
         })
     }, {signal})
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
-            if (reloadWhenHidden) reloadOnce()
+            if (reloadWhenHidden && !leaving) reloadOnce()
             return
         }
         if (now() - lastCheck < UPDATE_CHECK_MS) return

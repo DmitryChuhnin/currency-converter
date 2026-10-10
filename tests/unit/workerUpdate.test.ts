@@ -79,6 +79,38 @@ describe('watchWorkerUpdates', () => {
         expect(reload).not.toHaveBeenCalled()
     })
 
+    it('a touched page does not reload while leaving for another page, and reloads on the next hide after coming back', async () => {
+        const {container} = fakeContainer('controlled')
+        const reload = watch(container)
+        window.dispatchEvent(new Event('pointerdown'))
+        await takeOver(container)
+
+        // The order of a navigation away and of a return from the back/forward cache.
+        window.dispatchEvent(new Event('pagehide'))
+        setVisibility('hidden')
+        expect(reload).not.toHaveBeenCalled()
+        setVisibility('visible')
+        window.dispatchEvent(new Event('pageshow'))
+        expect(reload).not.toHaveBeenCalled()
+
+        setVisibility('hidden')
+        expect(reload).toHaveBeenCalledTimes(1)
+    })
+
+    it('a new worker taking over a page that is leaving waits for the next hide after coming back', async () => {
+        const {container} = fakeContainer('controlled')
+        const reload = watch(container)
+        window.dispatchEvent(new Event('pagehide'))
+        visibility = 'hidden'
+        await takeOver(container)
+        expect(reload).not.toHaveBeenCalled()
+
+        setVisibility('visible')
+        window.dispatchEvent(new Event('pageshow'))
+        setVisibility('hidden')
+        expect(reload).toHaveBeenCalledTimes(1)
+    })
+
     it('on the first visit the first worker claiming the page is not a new build, the next one is', async () => {
         const {container} = fakeContainer('first visit')
         const reload = watch(container)

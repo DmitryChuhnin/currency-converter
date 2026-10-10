@@ -1,6 +1,7 @@
-import {test as base, expect, type Page} from '@playwright/test'
+import {test as base, expect} from '@playwright/test'
 import {UPDATE_CHECK_MS} from '../../src/services/workerUpdate'
 import {API, NOW, payload} from './fixtures'
+import {newWorkerTakesOver, openControlled, setVisibility} from './worker'
 
 // A real service worker, so no page-level mocks: requests are routed on the context.
 const test = base.extend({})
@@ -31,26 +32,6 @@ test('one service worker; the app reloads offline with cached rates', async ({pa
     await page.locator('.amount-card[data-code="USD"] input').fill('10')
     await expect(page.locator('.amount-card[data-code="RUB"] input')).toHaveValue('800.00')
 })
-
-// What the worker of a new build does with skipWaiting and clientsClaim. A real second build
-// is out of reach: Playwright does not route the worker script.
-const newWorkerTakesOver = (page: Page) =>
-    page.evaluate(() => navigator.serviceWorker.dispatchEvent(new Event('controllerchange')))
-
-// Headless pages never get hidden on their own.
-const setVisibility = (page: Page, state: DocumentVisibilityState) =>
-    page.evaluate((state) => {
-        Object.defineProperty(document, 'visibilityState', {configurable: true, get: () => state})
-        document.dispatchEvent(new Event('visibilitychange'))
-    }, state)
-
-async function openControlled(page: Page) {
-    await page.goto('./')
-    await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true)
-    await page.reload()
-    await expect(page.getByRole('status')).toHaveText('Rates 25 Sep, 00:00 · checked 12:00')
-    await page.evaluate(() => document.body.setAttribute('data-old-bundle', ''))
-}
 
 test('an untouched page reloads at once when a new worker takes it over', async ({page}) => {
     await openControlled(page)
