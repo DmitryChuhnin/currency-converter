@@ -1,4 +1,5 @@
 import {test as base, expect, type Page} from '@playwright/test'
+import {UPDATE_CHECK_MS} from '../../src/services/workerUpdate'
 import {API, NOW, payload} from './fixtures'
 
 // A real service worker, so no page-level mocks: requests are routed on the context.
@@ -80,6 +81,32 @@ test('a new worker does not wipe the amount being typed; the page reloads once t
     await reloaded
     await expect(page.locator('body[data-old-bundle]')).toHaveCount(0)
     await expect(page.getByRole('heading', {name: 'Converter'})).toBeVisible()
+})
+
+test('an app coming back into view asks for a new build once the pause has passed', async ({page}) => {
+    type Counted = Window & {updateChecks?: number}
+    await page.addInitScript(() => {
+        const update = ServiceWorkerRegistration.prototype.update
+        ServiceWorkerRegistration.prototype.update = function () {
+            const counted = window as Counted
+            counted.updateChecks = (counted.updateChecks ?? 0) + 1
+            return update.call(this)
+        }
+    })
+    await openControlled(page)
+    const checks = () => page.evaluate(() => (window as Counted).updateChecks ?? 0)
+
+    await setVisibility(page, 'hidden')
+    await setVisibility(page, 'visible')
+    expect(await checks()).toBe(0)
+
+    await page.clock.setFixedTime(NOW.getTime() + UPDATE_CHECK_MS)
+    await setVisibility(page, 'hidden')
+    await setVisibility(page, 'visible')
+    await expect.poll(checks).toBe(1)
+    // The browser found no new build: the page stays as it is.
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 200)))
+    await expect(page.locator('body[data-old-bundle]')).toHaveCount(1)
 })
 
 test('caches carry the app id; only its own outdated precache is deleted', async ({page, baseURL}) => {
