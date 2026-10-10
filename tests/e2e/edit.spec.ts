@@ -160,6 +160,27 @@ test('reorder by dragging the handle', async ({page}) => {
     expect(await homeCodes(page)).toEqual(['RUB', 'VND', 'THB', 'USD', 'KRW'])
 })
 
+test('reorder by a touch drag on the handle', async ({page, isMobile, browserName}) => {
+    test.skip(!isMobile || browserName !== 'chromium', 'touch input goes through CDP, Chromium only')
+    await openEdit(page)
+    const from = (await page.getByRole('button', {name: /^Reorder US Dollar/}).boundingBox())!
+    const to = (await page.locator('.edit-row--selected[data-code="THB"]').boundingBox())!
+    const x = from.x + from.width / 2
+    const y0 = from.y + from.height / 2
+    const y1 = to.y + to.height / 2 + 4
+
+    // Real touch input: if the page could pan here, the browser would cancel the pointer.
+    const cdp = await page.context().newCDPSession(page)
+    const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', y?: number) =>
+        cdp.send('Input.dispatchTouchEvent', {type, touchPoints: y === undefined ? [] : [{x, y}]})
+    await touch('touchStart', y0)
+    for (let i = 1; i <= 10; i++) await touch('touchMove', y0 + ((y1 - y0) * i) / 10)
+    await expect(page.locator('.edit-row--dragging')).toHaveAttribute('data-code', 'USD')
+    await touch('touchEnd')
+
+    expect(await selectedCodes(page)).toEqual(['RUB', 'VND', 'THB', 'USD', 'KRW'])
+})
+
 test('arrow keys during a drag do not scramble the order', async ({page}) => {
     await openEdit(page)
     const handle = page.getByRole('button', {name: /^Reorder US Dollar/})
