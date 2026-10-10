@@ -12,7 +12,7 @@ test.beforeEach(async ({context, page}) => {
     await page.clock.setFixedTime(NOW)
 })
 
-test('one service worker; the app reloads offline with cached rates', async ({page, context}) => {
+test('one service worker; the app reloads offline with cached rates', async ({page, context, baseURL}) => {
     await page.goto('./')
     await expect(page.getByRole('status')).toHaveText('Rates 25 Sep, 00:00 · checked 12:00')
     await page.evaluate(async () => {
@@ -20,7 +20,8 @@ test('one service worker; the app reloads offline with cached rates', async ({pa
     })
     await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true)
     expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length)).toBe(1)
-    expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations())[0].scope)).toMatch(/\/converter\/$/)
+    // Exactly the app's path: a wider scope would take over the site and the other apps.
+    expect(await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations())[0].scope)).toBe(baseURL)
 
     await context.setOffline(true)
     await page.reload()
@@ -30,14 +31,22 @@ test('one service worker; the app reloads offline with cached rates', async ({pa
     await expect(page.locator('.amount-card[data-code="RUB"] input')).toHaveValue('800.00')
 })
 
-test('the API cache of the pre-redesign worker is deleted', async ({page}) => {
+test('caches carry the app id; only its own outdated precache is deleted', async ({page, baseURL}) => {
+    const {origin, href: scope} = new URL(baseURL!)
+    const outdated = `workbox-precache-v2-${scope}`
+    const foreign = ['api-cache', `workbox-precache-v2-${origin}/other-app/`]
+    // Left by the previous build of this app and by other apps on the origin.
+    await page.addInitScript((names) => {
+        if (sessionStorage.getItem('seeded')) return
+        sessionStorage.setItem('seeded', '1')
+        for (const name of names) void caches.open(name)
+    }, [outdated, ...foreign])
     await page.goto('./')
     await page.evaluate(async () => {
-        const cache = await caches.open('api-cache')
-        await cache.put('/converter/old-api', new Response('{}'))
+        await navigator.serviceWorker.ready
     })
-    await page.reload()
-    await expect.poll(() => page.evaluate(() => caches.has('api-cache'))).toBe(false)
+    await expect.poll(async () => (await page.evaluate(() => caches.keys())).sort())
+        .toEqual([`converter-precache-v2-${scope}`, ...foreign].sort())
 })
 
 test('manifest and icons are served under the base path', async ({page, request}) => {
