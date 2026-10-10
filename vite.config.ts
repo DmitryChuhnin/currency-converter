@@ -15,9 +15,13 @@ export default defineConfig({
             injectRegister: 'script',
             includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
             manifest: {
+                // Browsers took start_url as the id while there was none, so installed apps
+                // keep their identity.
+                id: BASE,
                 name: 'Currency Converter',
                 short_name: 'Converter',
                 description: 'Convert between many currencies at once, also offline',
+                lang: 'en',
                 theme_color: '#ffffff',
                 background_color: '#ffffff',
                 display: 'standalone',

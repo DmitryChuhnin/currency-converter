@@ -63,25 +63,45 @@ test('caches carry the app id; only its own outdated precache is deleted', async
         .toEqual([`converter-precache-v2-${scope}`, ...foreign].sort())
 })
 
+// Width x height from the PNG header.
+const pngSize = (png: Uint8Array) => {
+    const header = new DataView(png.buffer, png.byteOffset, 24)
+    return `${header.getUint32(16)}x${header.getUint32(20)}`
+}
+
 test('manifest and icons are served under the base path', async ({page, request}) => {
     await page.goto('./')
     const href = await page.locator('link[rel="manifest"]').getAttribute('href')
     expect(href).toBe('/converter/manifest.webmanifest')
     const manifest = await (await request.get(href!)).json()
-    expect(manifest.start_url).toBe('/converter/')
-    expect(manifest.scope).toBe('/converter/')
+    expect(manifest).toMatchObject({
+        id: '/converter/',
+        start_url: '/converter/',
+        scope: '/converter/',
+        display: 'standalone',
+        name: 'Currency Converter',
+        short_name: 'Converter',
+        lang: await page.locator('html').getAttribute('lang'),
+        theme_color: await page.locator('meta[name="theme-color"]').getAttribute('content'),
+    })
     // Separate files: a rounded "any" icon would get cropped again by a maskable launcher.
     const maskable = manifest.icons.filter((icon: {purpose?: string}) => icon.purpose === 'maskable')
     expect(maskable.map((icon: {src: string}) => icon.src)).toEqual(['/converter/icon-maskable-512.png'])
+    const sizes: string[] = []
     for (const icon of manifest.icons) {
         const res = await request.get(icon.src)
         expect(res.status(), icon.src).toBe(200)
         expect(res.headers()['content-type']).toBe('image/png')
+        expect(pngSize(await res.body()), icon.src).toBe(icon.sizes)
+        if (icon.purpose !== 'maskable') sizes.push(icon.sizes)
     }
-    for (const selector of ['link[rel="icon"]', 'link[rel="apple-touch-icon"]']) {
-        const url = await page.locator(selector).getAttribute('href')
-        expect((await request.get(url!)).status(), selector).toBe(200)
-    }
+    expect(sizes).toEqual(['192x192', '512x512'])
+    expect((await request.get((await page.locator('link[rel="icon"]').getAttribute('href'))!)).status()).toBe(200)
+    const appleIcon = await request.get((await page.locator('link[rel="apple-touch-icon"]').getAttribute('href'))!)
+    expect(appleIcon.status()).toBe(200)
+    expect(pngSize(await appleIcon.body())).toBe('180x180')
+    await expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).toHaveAttribute('content', 'yes')
+    await expect(page.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute('content', manifest.short_name)
     // The pre-redesign main.ts registered the worker a second time by hand.
     const registerScripts = await page.locator('script[src*="registerSW"]').count()
     expect(registerScripts).toBe(1)
